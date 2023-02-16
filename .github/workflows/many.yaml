@@ -1,0 +1,22 @@
+name: Require changes for large pull requests
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  check-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Count changed files
+        id: file-count
+        run: echo "FILE_COUNT=$(git diff --name-only HEAD $(git merge-base HEAD ${{ github.event.pull_request.base.sha }}) | wc -l)" >> $GITHUB_ENV
+      - name: Check if changes are within limit
+        env:
+          MAX_CHANGES: 20
+        run: |
+          if [[ "${{ env.FILE_COUNT }}" -gt "${{ env.MAX_CHANGES }}" ]]; then
+            echo "This pull request modifies too many files. Please reduce the number of changes." >&2
+            exit 1
+          fi
