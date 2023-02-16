@@ -12,14 +12,14 @@ jobs:
         uses: actions/checkout@v2
       - name: Count changed files
         id: file-count
-        run: echo "FILE_COUNT=$(git diff --name-only HEAD $(git merge-base HEAD ${{ github.event.pull_request.base.sha }}) | wc -l)" > envfile
+        run: echo "FILE_COUNT=$(git diff --name-only HEAD $(git merge-base HEAD ${{ github.event.pull_request.base.sha }}) | wc -l)" > .env
         shell: bash
       - name: Load environment variables
-        uses: peter-evans/envfile@v2.1.0
+        uses: gordthompson/setup-dotenv@v1.3
         with:
-          envFile: envfile
+          dotenv_path: .env
       - name: Refuse PR if too many files changed
         if: ${{ env.FILE_COUNT > 2 }}
         run: |
-          echo "Too many files changed in this pull request. Please limit changes to 2 files or less." >&2
+          echo "Too many files changed in this pull request. Please limit changes to 20 files or less." >&2
           exit 1
