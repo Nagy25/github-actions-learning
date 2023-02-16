@@ -32,11 +32,3 @@ jobs:
         run: |
           echo "Too many files changed in this pull request. Please limit changes to 2 files or less." >&2
           exit 1
-      - name: Create new branch and pull request
-        if: ${{ env.FILE_COUNT <= 2 }}
-        run: |
-          gh auth login --with-token < auth-token.txt
-          git checkout -b pr-${{ github.event.number }}-change-request
-          # Add your changes here
-          git commit -am "Change request for pull request #${{ github.event.number }}"
-          gh pr create --title "Change request for pull request #${{ github.event.number }}" --body "Please review the changes and merge if acceptable." --base ${GITHUB_BASE_REF} --head pr-${{ github.event.number }}-change-request
