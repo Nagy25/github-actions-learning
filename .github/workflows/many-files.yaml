@@ -1,0 +1,41 @@
+name: Request Changes on Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  check-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Count changed files
+        id: file-count
+        run: echo "FILE_COUNT=$(git diff --name-only HEAD $(git merge-base HEAD ${{ github.event.pull_request.base.sha }}) | wc -l)" > .env
+        shell: bash
+      - name: Load environment variables
+        uses: gordthompson/setup-dotenv@v1.3
+        with:
+          dotenv_path: .env
+      - name: Refuse PR if too many files changed
+        if: ${{ env.FILE_COUNT > 2 }}
+        run: |
+          curl --request POST \
+            --url https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
+            --header 'accept: application/vnd.github.v3+json' \
+            --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+            --header 'content-type: application/json' \
+            --data '{
+              "event": "REQUEST_CHANGES",
+              "body": "Too many files changed in this pull request. Please limit changes to 2 files or less."
+            }'
+          curl --request POST \
+            --url https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            --header 'accept: application/vnd.github.v3+json' \
+            --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+            --header 'content-type: application/json' \
+            --data '{
+              "body": "Please reduce the number of changed files to 2 or less."
+            }'
+          exit 1
