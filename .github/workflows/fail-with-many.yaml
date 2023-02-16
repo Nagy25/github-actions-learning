@@ -15,11 +15,28 @@ jobs:
         run: echo "FILE_COUNT=$(git diff --name-only HEAD $(git merge-base HEAD ${{ github.event.pull_request.base.sha }}) | wc -l)" > .env
         shell: bash
       - name: Load environment variables
-        uses: gordthompson/setup-dotenv@v1.3
+        uses: actions/setup-node@v2
         with:
-          dotenv_path: .env
+          node-version: '16.x'
+      - name: Load .env
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Load .env file
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-dotenv
+          source .env
       - name: Refuse PR if too many files changed
         if: ${{ env.FILE_COUNT > 2 }}
         run: |
-          echo "Too many files changed in this pull request. Please limit changes to 20 files or less." >&2
+          echo "Too many files changed in this pull request. Please limit changes to 2 files or less." >&2
           exit 1
+      - name: Create new branch and pull request
+        if: ${{ env.FILE_COUNT <= 2 }}
+        run: |
+          gh auth login --with-token < auth-token.txt
+          git checkout -b pr-${{ github.event.number }}-change-request
+          # Add your changes here
+          git commit -am "Change request for pull request #${{ github.event.number }}"
+          gh pr create --title "Change request for pull request #${{ github.event.number }}" --body "Please review the changes and merge if acceptable." --base ${GITHUB_BASE_REF} --head pr-${{ github.event.number }}-change-request
